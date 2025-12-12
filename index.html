@@ -4,214 +4,338 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>慢箋領藥日計算</title>
-
 <style>
-* { box-sizing:border-box; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
-body { margin:0; background:#eef1f7; padding:16px; }
-.app{
-  max-width:900px; margin:auto; background:#fff;
-  border-radius:18px; box-shadow:0 18px 40px rgba(0,0,0,.12);
-  padding:16px;
-}
-h1{ margin:0 0 6px; font-size:20px; }
-.sub{ font-size:13px; color:#6b7280; line-height:1.6; margin-bottom:12px; }
-
-.grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-@media(max-width:720px){ .grid{ grid-template-columns:1fr; } }
-
-.card{ border:1px solid #e5e7eb; border-radius:14px; padding:12px; }
-.row{
-  display:grid; grid-template-columns:190px 1fr;
-  gap:10px; margin:10px 0; align-items:center;
-}
-@media(max-width:520px){ .row{ grid-template-columns:1fr; } }
-
-label{ font-size:13px; }
-input,select{
-  width:100%; padding:10px 12px; font-size:14px;
-  border-radius:12px; border:1px solid #d1d5db;
-}
-input:focus,select:focus{
-  outline:none; border-color:#60a5fa;
-  box-shadow:0 0 0 3px rgba(96,165,250,.25);
-}
-
-button{
-  border:0; border-radius:12px; padding:10px 12px;
-  font-size:14px; cursor:pointer;
-}
-.primary{ background:#2563eb; color:#fff; }
-.ghost{ background:#f3f4f6; }
-
-.btns{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
-
-.ok{
-  background:#ecfdf5; border:1px solid #a7f3d0;
-  color:#065f46; padding:10px 12px; border-radius:12px;
-}
-.warn{
-  background:#fef2f2; border:1px solid #fecaca;
-  color:#b91c1c; padding:10px 12px; border-radius:12px;
-}
-
-.table{ width:100%; border-collapse:collapse; margin-top:10px; }
-.table th,.table td{
-  padding:10px; border-bottom:1px solid #e5e7eb; font-size:14px;
-}
-.table th{ background:#f9fafb; text-align:left; }
-
-.hint{ font-size:12px; color:#6b7280; margin-top:4px; }
-.mono{ font-family:ui-monospace,monospace; }
+  * { box-sizing:border-box; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+  body { margin:0; background:#eef1f7; padding:16px; }
+  .app{ max-width:980px; margin:auto; background:#fff; border-radius:18px; box-shadow:0 18px 40px rgba(0,0,0,.12); padding:16px; }
+  h1{ margin:0 0 6px; font-size:20px; }
+  .sub{ font-size:13px; color:#6b7280; line-height:1.6; margin-bottom:12px; }
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media(max-width:760px){ .grid{ grid-template-columns:1fr; } }
+  .card{ border:1px solid #e5e7eb; border-radius:14px; padding:12px; background:#fff; }
+  .row{ display:grid; grid-template-columns:240px 1fr; gap:10px; margin:10px 0; align-items:center; }
+  @media(max-width:520px){ .row{ grid-template-columns:1fr; } }
+  label{ font-size:13px; color:#111827; }
+  input,select{
+    width:100%; padding:10px 12px; font-size:14px;
+    border-radius:12px; border:1px solid #d1d5db; background:#fff;
+  }
+  input:focus,select:focus{ outline:none; border-color:#60a5fa; box-shadow:0 0 0 3px rgba(96,165,250,.25); }
+  .btns{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+  button{ border:0; border-radius:12px; padding:10px 12px; font-size:14px; cursor:pointer; }
+  .primary{ background:#2563eb; color:#fff; }
+  .ghost{ background:#f3f4f6; color:#111827; }
+  .ok{ background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; padding:10px 12px; border-radius:12px; margin-bottom:10px; }
+  .warn{ background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:10px 12px; border-radius:12px; margin-bottom:10px; }
+  .hint{ font-size:12px; color:#6b7280; line-height:1.5; margin-top:6px; }
+  .mono{ font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace; }
+  .table{ width:100%; border-collapse:collapse; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; }
+  .table th,.table td{ padding:10px; border-bottom:1px solid #e5e7eb; font-size:14px; vertical-align:top; }
+  .table th{ background:#f9fafb; text-align:left; }
+  .pill{ display:inline-block; padding:3px 10px; border-radius:999px; font-size:12px; background:#eef2ff; color:#3730a3; }
+  .status{
+    display:inline-block; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:600;
+    border:1px solid transparent;
+  }
+  .green{ background:#ecfdf5; color:#065f46; border-color:#a7f3d0; }
+  .red{ background:#fef2f2; color:#b91c1c; border-color:#fecaca; }
+  .gray{ background:#f3f4f6; color:#374151; border-color:#e5e7eb; }
 </style>
 </head>
-
 <body>
 <div class="app">
-<h1>慢箋領藥日計算</h1>
-<div class="sub">
-慢箋有效 <b>90 天</b>（可改），預設領 <b>3 次</b>。<br>
-每次處方天數開立時選定（21～31）。<br>
-下一次領藥需符合：<b>剩餘藥量 &lt; 門檻天數</b>（預設 10）。<br>
-<b>第 1 次實領藥日未填＝開立日</b>。
-</div>
-
-<div class="grid">
-<div class="card">
-  <div class="row">
-    <label>處方開立日</label>
-    <input id="issueDate" placeholder="114/11/1 或 2025-11-01">
+  <h1>慢箋領藥日計算（含第2次晚領→第3次順延 + 今天能不能領）</h1>
+  <div class="sub">
+    慢箋有效 <span class="pill">90 天</span>（可改），預設領 <span class="pill">3 次</span>。<br/>
+    下一次領藥條件：<b>剩餘藥量 &lt; 門檻</b>（預設 10）。<br/>
+    ※ 第 1 次實領可不填（＝開立日）。<br/>
+    ※ 若第 2 次晚領，填「第 2 次實領」，第 3 次最早可領會自動順延。<br/>
+    ※ 本工具以「每天用 1 天量」推算，實務仍以藥局/院所規範為準。
   </div>
 
-  <div class="row">
-    <label>第 1 次實領藥日（可不填）</label>
-    <input id="firstFillDate" placeholder="通常不必填">
-  </div>
+  <div class="grid">
+    <div class="card">
+      <div class="row">
+        <label>處方開立日（民國/西元）</label>
+        <input id="issueDate" placeholder="114/11/1 或 2025-11-01" />
+      </div>
 
-  <div class="row">
-    <label>每次處方天數</label>
-    <select id="daysPerFill"></select>
-  </div>
+      <div class="row">
+        <label>第 1 次實領藥日（未填＝開立日）</label>
+        <input id="fill1Date" placeholder="通常不必填" />
+      </div>
 
-  <div class="row">
-    <label>可再領門檻（剩餘 &lt; ? 天）</label>
-    <input id="threshold" type="number" value="10">
-  </div>
+      <div class="row">
+        <label>第 2 次實領藥日（可選填，用於推第3次）</label>
+        <input id="fill2Date" placeholder="若第2次晚領，請填這裡" />
+      </div>
 
-  <div class="row">
-    <label>領藥次數</label>
-    <input id="fills" type="number" value="3">
-  </div>
+      <div class="row">
+        <label>每次處方天數（開立時選）</label>
+        <select id="daysPerFill"></select>
+      </div>
 
-  <div class="row">
-    <label>總有效天數</label>
-    <input id="validDays" type="number" value="90">
-  </div>
+      <div class="row">
+        <label>門檻（剩餘 &lt; ? 天可再領）</label>
+        <input id="threshold" type="number" min="1" value="10" />
+      </div>
 
-  <div class="btns">
-    <button class="primary" onclick="calc()">計算</button>
-    <button class="ghost" onclick="example()">範例</button>
-  </div>
-</div>
+      <div class="row">
+        <label>領藥次數</label>
+        <input id="fills" type="number" min="2" value="3" />
+      </div>
 
-<div class="card">
-  <div id="output" class="hint">請輸入資料後計算</div>
-</div>
-</div>
+      <div class="row">
+        <label>總有效天數（慢箋）</label>
+        <input id="validDays" type="number" min="1" value="90" />
+      </div>
+
+      <div class="hint">
+        因為條件是「剩餘 &lt; 門檻」（嚴格小於），所以最少間隔：<br/>
+        <b>gap = 每次天數 - 門檻 + 1</b><br/>
+        例：30 天、門檻 10 → gap = 21 天（要剩 9 天才可領下一次）。
+      </div>
+
+      <div class="btns">
+        <button class="primary" id="calcBtn">計算</button>
+        <button class="ghost" id="exampleBtn">帶入範例（含晚領）</button>
+        <button class="ghost" id="clearBtn">清除</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div id="output" class="hint">請輸入資料後按「計算」。</div>
+    </div>
+  </div>
 </div>
 
 <script>
-// ===== 初始化下拉 =====
-const sel=document.getElementById("daysPerFill");
-for(let d=21; d<=31; d++){
-  const o=document.createElement("option");
-  o.value=d; o.textContent=d+" 天";
-  sel.appendChild(o);
-}
-sel.value=30;
+  // 初始化 21~31
+  (function initDays(){
+    const sel = document.getElementById("daysPerFill");
+    for(let d=21; d<=31; d++){
+      const opt = document.createElement("option");
+      opt.value = String(d);
+      opt.textContent = `${d} 天`;
+      sel.appendChild(opt);
+    }
+    sel.value = "30";
+  })();
 
-// ===== UTC 日期工具（2/28、2/29 正確）=====
-function pad2(n){ return String(n).padStart(2,'0'); }
-
-function addDays(d,n){
-  const x=new Date(d.getTime());
-  x.setUTCDate(x.getUTCDate()+n);
-  return x;
-}
-
-function fmt(d){
-  return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth()+1)}-${pad2(d.getUTCDate())}`;
-}
-function fmtROC(d){
-  return `${d.getUTCFullYear()-1911}/${d.getUTCMonth()+1}/${d.getUTCDate()}`;
-}
-
-function parseDate(s){
-  if(!s) return null;
-  s=s.trim();
-  let m=s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
-  if(m){
-    const dt=new Date(Date.UTC(+m[1],m[2]-1,m[3]));
-    if(dt.getUTCDate()==m[3]) return dt;
+  // ===== UTC 日期工具（避免時區偏移；2/28、2/29 正確）=====
+  function pad2(n){ return String(n).padStart(2,'0'); }
+  function addDays(d, n){
+    const x = new Date(d.getTime());
+    x.setUTCDate(x.getUTCDate() + n);
+    return x;
+  }
+  function fmtYMD(d){
+    return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth()+1)}-${pad2(d.getUTCDate())}`;
+  }
+  function fmtROC(d){
+    return `${d.getUTCFullYear()-1911}/${d.getUTCMonth()+1}/${d.getUTCDate()}`;
+  }
+  function parseDate(s){
+    if(!s) return null;
+    s = String(s).trim();
+    // YYYY-MM-DD or YYYY/MM/DD
+    let m = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+    if(m){
+      const y=+m[1], mo=+m[2], da=+m[3];
+      const dt = new Date(Date.UTC(y, mo-1, da));
+      if(dt.getUTCFullYear()===y && dt.getUTCMonth()===(mo-1) && dt.getUTCDate()===da) return dt;
+      return null;
+    }
+    // ROC
+    m = s.match(/^(\d{2,3})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+    if(m){
+      const y=(+m[1])+1911, mo=+m[2], da=+m[3];
+      const dt = new Date(Date.UTC(y, mo-1, da));
+      if(dt.getUTCFullYear()===y && dt.getUTCMonth()===(mo-1) && dt.getUTCDate()===da) return dt;
+      return null;
+    }
     return null;
   }
-  m=s.match(/^(\d{2,3})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
-  if(m){
-    const dt=new Date(Date.UTC(+m[1]+1911,m[2]-1,m[3]));
-    if(dt.getUTCDate()==m[3]) return dt;
-    return null;
-  }
-  return null;
-}
 
-// ===== 主計算 =====
-function calc(){
-  const out=document.getElementById("output");
-
-  const issue=parseDate(issueDate.value);
-  if(!issue) return out.innerHTML=`<div class="warn">開立日格式錯誤</div>`;
-
-  const first=firstFillDate.value ? parseDate(firstFillDate.value) : issue;
-  if(!first || first<issue)
-    return out.innerHTML=`<div class="warn">第 1 次實領藥日錯誤</div>`;
-
-  const days=+daysPerFill.value;
-  const th=+threshold.value;
-  const fillsN=+fills.value;
-  const valid=+validDays.value;
-
-  const gap=days-th;
-  if(gap<=0) return out.innerHTML=`<div class="warn">門檻設定不合理</div>`;
-
-  const expiry=addDays(issue,valid-1);
-
-  const rows=[];
-  rows.push(`第 1 次：${fmt(first)}（民國 ${fmtROC(first)}）`);
-
-  for(let i=2;i<=fillsN;i++){
-    const earliest=addDays(first,(i-1)*gap);
-    const latest=addDays(expiry,(i-fillsN)*gap);
-    rows.push(`第 ${i} 次：${fmt(earliest)} ～ ${fmt(latest)}`);
+  // 取「今天」（以本地日期建立 UTC 零點，避免跨時區偏移）
+  function todayUTC(){
+    const now = new Date();
+    return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
   }
 
-  out.innerHTML=`
-  <div class="ok">
-    開立日：${fmt(issue)}（民國 ${fmtROC(issue)}）<br>
-    到期日：${fmt(expiry)}（民國 ${fmtROC(expiry)}）
-  </div>
-  <table class="table">
-    ${rows.map(r=>`<tr><td class="mono">${r}</td></tr>`).join("")}
-  </table>`;
-}
+  function statusChip(ok, text){
+    const cls = ok === null ? "gray" : (ok ? "green" : "red");
+    return `<span class="status ${cls}">${text}</span>`;
+  }
 
-function example(){
-  issueDate.value="2024-02-29";
-  firstFillDate.value="";
-  daysPerFill.value="30";
-  threshold.value="10";
-  fills.value="3";
-  validDays.value="90";
-  calc();
-}
+  function renderTable(rows){
+    return `
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width:110px;">次數</th>
+            <th>可領日期（最早 ~ 最晚）</th>
+            <th style="width:320px;">判斷/說明</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(r=>`
+            <tr>
+              <td><b>${r.k}</b></td>
+              <td>
+                <div class="mono">${r.earliest} ~ ${r.latest}</div>
+                <div class="hint">民國：${r.earliestROC} ~ ${r.latestROC}</div>
+                ${r.extra ? `<div class="hint">${r.extra}</div>` : ``}
+              </td>
+              <td class="hint">${r.note}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function calc(){
+    const out = document.getElementById("output");
+
+    const issue = parseDate(document.getElementById("issueDate").value);
+    if(!issue){
+      out.innerHTML = `<div class="warn">處方開立日格式錯誤（例：114/11/1 或 2025-11-01）</div>`;
+      return;
+    }
+
+    const fill1Raw = document.getElementById("fill1Date").value.trim();
+    const fill2Raw = document.getElementById("fill2Date").value.trim();
+
+    const fill1 = fill1Raw ? parseDate(fill1Raw) : issue;
+    if(!fill1){
+      out.innerHTML = `<div class="warn">第 1 次實領藥日格式錯誤</div>`;
+      return;
+    }
+    if(fill1 < issue){
+      out.innerHTML = `<div class="warn">第 1 次實領藥日不可早於開立日</div>`;
+      return;
+    }
+
+    const fill2 = fill2Raw ? parseDate(fill2Raw) : null;
+    if(fill2Raw && !fill2){
+      out.innerHTML = `<div class="warn">第 2 次實領藥日格式錯誤</div>`;
+      return;
+    }
+
+    const days = Number(document.getElementById("daysPerFill").value);
+    const threshold = Number(document.getElementById("threshold").value);
+    const fills = Number(document.getElementById("fills").value);
+    const validDays = Number(document.getElementById("validDays").value);
+
+    if(fills !== 3){
+      // 這版 UI 也能調次數，但「填第2次推第3次」是針對3次最直覺
+      // 先允許，但提示一下
+    }
+    if(threshold < 1 || threshold > days){
+      out.innerHTML = `<div class="warn">門檻需介於 1 ~ 每次天數(${days})</div>`;
+      return;
+    }
+
+    // 剩餘 < threshold (嚴格小於) ⇒ 用掉天數 t > days-threshold ⇒ 最小整數 t = days-threshold+1
+    const gap = days - threshold + 1;
+
+    const expiry = addDays(issue, validDays - 1);
+    const today = todayUTC();
+
+    // 第2次區間（以第1次為起點）
+    const secondEarliest = addDays(fill1, gap);
+    const secondLatest = addDays(expiry, -gap);
+
+    // 第3次最早：若有第2次實領，改用它推；否則用理論（第1次+2gap）
+    const thirdEarliestTheory = addDays(fill1, gap * 2);
+    const thirdEarliest = fill2 ? addDays(fill2, gap) : thirdEarliestTheory;
+    const thirdLatest = expiry;
+
+    // 今天能不能領（只要今天落在區間內）
+    const canSecondToday = (today >= secondEarliest && today <= secondLatest);
+    const canThirdToday  = (today >= thirdEarliest && today <= thirdLatest);
+
+    // 檢查填的第2次是否落在合法區間
+    let inputWarn = [];
+    if(fill2){
+      if(fill2 < secondEarliest) inputWarn.push("你輸入的第 2 次實領日早於「最早可領日」，不符合剩餘<門檻規則。");
+      if(fill2 > secondLatest) inputWarn.push("你輸入的第 2 次實領日太晚，可能導致第 3 次來不及在效期內領完。");
+    }
+
+    const impossible = (secondEarliest > secondLatest) || (thirdEarliest > thirdLatest);
+
+    const rows = [];
+
+    rows.push({
+      k:"第 1 次",
+      earliest: fmtYMD(fill1),
+      latest: fmtYMD(expiry),
+      earliestROC: fmtROC(fill1),
+      latestROC: fmtROC(expiry),
+      extra: "",
+      note: fill1Raw ? "以你輸入的第1次實領日為起算" : "未填視為開立日（當天領）"
+    });
+
+    rows.push({
+      k:"第 2 次",
+      earliest: fmtYMD(secondEarliest),
+      latest: fmtYMD(secondLatest),
+      earliestROC: fmtROC(secondEarliest),
+      latestROC: fmtROC(secondLatest),
+      extra: `今天（${fmtYMD(today)}）${statusChip(canSecondToday, canSecondToday ? "可領" : "不可領")}`,
+      note: `gap=${gap} 天；最晚需保留 gap 給第3次`
+    });
+
+    rows.push({
+      k:"第 3 次",
+      earliest: fmtYMD(thirdEarliest),
+      latest: fmtYMD(thirdLatest),
+      earliestROC: fmtROC(thirdEarliest),
+      latestROC: fmtROC(thirdLatest),
+      extra: `今天（${fmtYMD(today)}）${statusChip(canThirdToday, canThirdToday ? "可領" : "不可領")}` +
+             (fill2 ? `<br/>依第2次實領推：第3次最早=${fmtYMD(thirdEarliest)}` : `<br/>第2次未填→用理論最早=${fmtYMD(thirdEarliestTheory)}`),
+      note: fill2 ? "第2次晚領 → 第3次最早可領日會順延" : "若第2次實際晚領，請填第2次實領日"
+    });
+
+    const headerClass = (impossible || inputWarn.length) ? "warn" : "ok";
+
+    out.innerHTML = `
+      <div class="${headerClass}">
+        <b>開立日：</b>${fmtYMD(issue)}（民國 ${fmtROC(issue)}）　
+        <b>到期最後可領日：</b>${fmtYMD(expiry)}（民國 ${fmtROC(expiry)}）<br/>
+        <span class="hint">每次 ${days} 天、門檻剩餘 &lt; ${threshold} 天 ⇒ gap=${gap} 天</span>
+        ${impossible ? `<div class="hint" style="margin-top:6px;">注意：目前參數下區間不成立（可能無法在效期內完成）。</div>` : ``}
+        ${inputWarn.length ? `<div class="hint" style="margin-top:6px;">${inputWarn.map(s=>`• ${s}`).join("<br/>")}</div>` : ``}
+      </div>
+      ${renderTable(rows)}
+    `;
+  }
+
+  document.getElementById("calcBtn").addEventListener("click", calc);
+
+  document.getElementById("exampleBtn").addEventListener("click", () => {
+    // 範例：用閏年日期 + 第2次晚領
+    document.getElementById("issueDate").value = "2024-02-29";
+    document.getElementById("fill1Date").value = "";            // 未填=當天領
+    document.getElementById("fill2Date").value = "2024-03-30";  // 第2次晚領
+    document.getElementById("daysPerFill").value = "30";
+    document.getElementById("threshold").value = "10";
+    document.getElementById("fills").value = "3";
+    document.getElementById("validDays").value = "90";
+    calc();
+  });
+
+  document.getElementById("clearBtn").addEventListener("click", () => {
+    document.getElementById("issueDate").value = "";
+    document.getElementById("fill1Date").value = "";
+    document.getElementById("fill2Date").value = "";
+    document.getElementById("daysPerFill").value = "30";
+    document.getElementById("threshold").value = "10";
+    document.getElementById("fills").value = "3";
+    document.getElementById("validDays").value = "90";
+    document.getElementById("output").innerHTML = `<div class="hint">請輸入資料後按「計算」。</div>`;
+  });
 </script>
 </body>
 </html>
