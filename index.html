@@ -44,13 +44,13 @@
 </head>
 <body>
 <div class="app">
-  <h1>慢箋領藥日計算（含第2次晚領→第3次順延 + 今天能不能領）</h1>
+  <h1>慢箋第 2、3 次領藥日期計算</h1>
   <div class="sub">
-    慢箋有效 <span class="pill">90 天</span>（可改），預設領 <span class="pill">3 次</span>。<br/>
-    下一次領藥條件：<b>剩餘藥量 &lt; 門檻</b>（預設 10）。<br/>
+    預設領 <span class="pill">3 次</span>，每次依實際處方天數計算總給藥日數（最多 90 天）。<br/>
+    預設以給藥天數減去提前領藥天數（10 天）估算下次可領日期。<br/>
     ※ 第 1 次實領可不填（＝開立日）。<br/>
-    ※ 若第 2 次晚領，填「第 2 次實領」，第 3 次最早可領會自動順延。<br/>
-    ※ 本工具以「每天用 1 天量」推算，實務仍以藥局/院所規範為準。
+    ※ 第 2 次提早領取不會讓第 3 次提前；若超過原定用藥接續日才領，第 3 次會順延。<br/>
+    ※ 日期僅供試算；實際給藥期間、例假日特殊提前措施及是否可調劑，以處方箋、健保紀錄與藥師確認為準。
   </div>
 
   <div class="grid">
@@ -76,24 +76,24 @@
       </div>
 
       <div class="row">
-        <label>門檻（剩餘 &lt; ? 天可再領）</label>
+        <label>可提前領藥天數（預設 10 天）</label>
         <input id="threshold" type="number" min="1" value="10" />
       </div>
 
       <div class="row">
         <label>領藥次數</label>
-        <input id="fills" type="number" min="2" value="3" />
+        <select id="fills"><option value="2">2 次</option><option value="3" selected>3 次</option></select>
       </div>
 
       <div class="row">
         <label>總有效天數（慢箋）</label>
-        <input id="validDays" type="number" min="1" value="90" />
+        <input id="validDays" type="number" min="1" max="90" value="90" />
       </div>
 
       <div class="hint">
-        因為條件是「剩餘 &lt; 門檻」（嚴格小於），所以最少間隔：<br/>
-        <b>gap = 每次天數 - 門檻 + 1</b><br/>
-        例：30 天、門檻 10 → gap = 21 天（要剩 9 天才可領下一次）。
+        <b>計算方式：</b>最早可再領 = 前次給藥起始日 + 每次給藥天數 − 提前天數。<br/>
+        例如 115/12/1 領 28 天、可提前 10 天 → 第 2 次試算為 <b>115/12/19</b>。<br/>
+        有效天數預設為「每次給藥日數 × 次數」（至多 90 天）；如處方箋另有記載，請依實際處方調整。
       </div>
 
       <div class="btns">
@@ -121,6 +121,15 @@
     }
     sel.value = "30";
   })();
+
+  // 調整每次天數或次數時，自動重算總給藥日數；仍允許依處方手動更改。
+  function autoValidDays(){
+    const d = Number(document.getElementById("daysPerFill").value);
+    const n = Number(document.getElementById("fills").value);
+    document.getElementById("validDays").value = String(Math.min(90, d*n));
+  }
+  document.getElementById("daysPerFill").addEventListener("change", autoValidDays);
+  document.getElementById("fills").addEventListener("change", autoValidDays);
 
   // ===== UTC 日期工具（避免時區偏移；2/28、2/29 正確）=====
   function pad2(n){ return String(n).padStart(2,'0'); }
@@ -228,75 +237,63 @@
     const fills = Number(document.getElementById("fills").value);
     const validDays = Number(document.getElementById("validDays").value);
 
-    if(fills !== 3){
-      // 這版 UI 也能調次數，但「填第2次推第3次」是針對3次最直覺
-      // 先允許，但提示一下
-    }
-    if(threshold < 1 || threshold > days){
-      out.innerHTML = `<div class="warn">門檻需介於 1 ~ 每次天數(${days})</div>`;
+    if(!Number.isInteger(threshold) || threshold < 1 || threshold > days ||
+       !Number.isInteger(validDays) || validDays < 1 || validDays > 90){
+      out.innerHTML = `<div class="warn">提前天數須介於 1～${days}；總有效天數須介於 1～90。</div>`;
       return;
     }
 
-    // 剩餘 < threshold (嚴格小於) ⇒ 用掉天數 t > days-threshold ⇒ 最小整數 t = days-threshold+1
-    const gap = days - threshold + 1;
-
+    // 以「用藥起算日 + 給藥天數 - 提前天數」估算最早調劑日。
+    // 提前領取仍接續前一段用藥，不會因此將下一次可領日提前。
+    const gap = days - threshold;
     const expiry = addDays(issue, validDays - 1);
     const today = todayUTC();
-
-    // 第2次區間（以第1次為起點）
     const secondEarliest = addDays(fill1, gap);
-    const secondLatest = addDays(expiry, -gap);
-
-    // 第3次最早：若有第2次實領，改用它推；否則用理論（第1次+2gap）
-    const thirdEarliestTheory = addDays(fill1, gap * 2);
-    const thirdEarliest = fill2 ? addDays(fill2, gap) : thirdEarliestTheory;
+    const secondScheduledStart = addDays(fill1, days);
+    const thirdEarliestTheory = addDays(secondScheduledStart, gap);
+    const thirdEarliest = fill2
+      ? addDays(fill2 > secondScheduledStart ? fill2 : secondScheduledStart, gap)
+      : thirdEarliestTheory;
+    const secondLatest = expiry;
     const thirdLatest = expiry;
-
-    // 今天能不能領（只要今天落在區間內）
-    const canSecondToday = (today >= secondEarliest && today <= secondLatest);
-    const canThirdToday  = (today >= thirdEarliest && today <= thirdLatest);
-
-    // 檢查填的第2次是否落在合法區間
-    let inputWarn = [];
+    const canSecondToday = !fill2 && today >= secondEarliest && today <= secondLatest;
+    const canThirdToday = fills === 3 && today >= thirdEarliest && today <= thirdLatest &&
+      (!fill2 || today >= fill2);
+    const inputWarn = [];
+    if(fill1 > expiry) inputWarn.push("第 1 次領藥日晚於本次填寫的有效期。");
     if(fill2){
-      if(fill2 < secondEarliest) inputWarn.push("你輸入的第 2 次實領日早於「最早可領日」，不符合剩餘<門檻規則。");
-      if(fill2 > secondLatest) inputWarn.push("你輸入的第 2 次實領日太晚，可能導致第 3 次來不及在效期內領完。");
+      if(fill2 < secondEarliest) inputWarn.push("第 2 次實領日早於試算最早領藥日，請向藥師確認特殊提前領藥規定。");
+      if(fill2 > expiry) inputWarn.push("第 2 次實領日超過填寫的效期。");
+      if(fill2 < fill1) inputWarn.push("第 2 次實領日不可早於第 1 次實領日。");
     }
-
-    const impossible = (secondEarliest > secondLatest) || (thirdEarliest > thirdLatest);
+    if(validDays !== days * fills){
+      inputWarn.push("總有效天數與每次天數 × 次數不同，請確認處方箋實際總給藥日數。");
+    }
+    const impossible = secondEarliest > expiry ||
+      (fills === 3 && thirdEarliest > expiry);
 
     const rows = [];
 
-    rows.push({
-      k:"第 1 次",
-      earliest: fmtYMD(fill1),
-      latest: fmtYMD(expiry),
-      earliestROC: fmtROC(fill1),
-      latestROC: fmtROC(expiry),
-      extra: "",
-      note: fill1Raw ? "以你輸入的第1次實領日為起算" : "未填視為開立日（當天領）"
-    });
-
-    rows.push({
-      k:"第 2 次",
-      earliest: fmtYMD(secondEarliest),
-      latest: fmtYMD(secondLatest),
-      earliestROC: fmtROC(secondEarliest),
-      latestROC: fmtROC(secondLatest),
-      extra: `今天（${fmtYMD(today)}）${statusChip(canSecondToday, canSecondToday ? "可領" : "不可領")}`,
-      note: `gap=${gap} 天；最晚需保留 gap 給第3次`
-    });
-
-    rows.push({
-      k:"第 3 次",
-      earliest: fmtYMD(thirdEarliest),
-      latest: fmtYMD(thirdLatest),
-      earliestROC: fmtROC(thirdEarliest),
-      latestROC: fmtROC(thirdLatest),
-      extra: `今天（${fmtYMD(today)}）${statusChip(canThirdToday, canThirdToday ? "可領" : "不可領")}` +
-             (fill2 ? `<br/>依第2次實領推：第3次最早=${fmtYMD(thirdEarliest)}` : `<br/>第2次未填→用理論最早=${fmtYMD(thirdEarliestTheory)}`),
-      note: fill2 ? "第2次晚領 → 第3次最早可領日會順延" : "若第2次實際晚領，請填第2次實領日"
-    });
+    function row(k, earliest, latest, extra, note){
+      return {
+        k, earliest:fmtYMD(earliest), latest:fmtYMD(latest),
+        earliestROC:fmtROC(earliest), latestROC:fmtROC(latest),
+        extra, note
+      };
+    }
+    rows.push(row("第 1 次", fill1, fill1, "",
+      fill1Raw ? "已填第 1 次實領日" : "假設於開立日領取（若不同請填實領日）"));
+    rows.push(row("第 2 次", secondEarliest, secondLatest,
+      fill2 ? `已實領：${fmtYMD(fill2)}` :
+        `今天（${fmtYMD(today)}）${statusChip(canSecondToday, canSecondToday ? "在試算區間內" : "不在試算區間")}`,
+      "最早日為預估值；最晚顯示處方效期，不代表可無條件領取"));
+    if(fills === 3){
+      rows.push(row("第 3 次", thirdEarliest, thirdLatest,
+        `今天（${fmtYMD(today)}）${statusChip(fill2 ? canThirdToday : null, !fill2 ? "尚未填第 2 次實領日" : (canThirdToday ? "在試算區間內" : "不在試算區間"))}`,
+        fill2 && fill2 > secondScheduledStart
+          ? "第 2 次晚於原定用藥接續日，第 3 次試算順延"
+          : "依原定給藥期間推算；第 2 次提前領藥不使第 3 次提前"));
+    }
 
     const headerClass = (impossible || inputWarn.length) ? "warn" : "ok";
 
@@ -304,8 +301,8 @@
       <div class="${headerClass}">
         <b>開立日：</b>${fmtYMD(issue)}（民國 ${fmtROC(issue)}）　
         <b>到期最後可領日：</b>${fmtYMD(expiry)}（民國 ${fmtROC(expiry)}）<br/>
-        <span class="hint">每次 ${days} 天、門檻剩餘 &lt; ${threshold} 天 ⇒ gap=${gap} 天</span>
-        ${impossible ? `<div class="hint" style="margin-top:6px;">注意：目前參數下區間不成立（可能無法在效期內完成）。</div>` : ``}
+        <span class="hint">每次 ${days} 天、提前 ${threshold} 天 ⇒ 首次間隔 ${gap} 天；總給藥日數 ${days * fills} 天</span>
+        ${impossible ? `<div class="hint" style="margin-top:6px;">注意：依目前填入的日期及效期，部分領藥日已超過效期，請向藥師確認。</div>` : ``}
         ${inputWarn.length ? `<div class="hint" style="margin-top:6px;">${inputWarn.map(s=>`• ${s}`).join("<br/>")}</div>` : ``}
       </div>
       ${renderTable(rows)}
@@ -322,9 +319,11 @@
     document.getElementById("daysPerFill").value = "30";
     document.getElementById("threshold").value = "10";
     document.getElementById("fills").value = "3";
-    document.getElementById("validDays").value = "90";
+    autoValidDays();
     calc();
   });
+
+  autoValidDays();
 
   document.getElementById("clearBtn").addEventListener("click", () => {
     document.getElementById("issueDate").value = "";
@@ -333,7 +332,7 @@
     document.getElementById("daysPerFill").value = "30";
     document.getElementById("threshold").value = "10";
     document.getElementById("fills").value = "3";
-    document.getElementById("validDays").value = "90";
+    autoValidDays();
     document.getElementById("output").innerHTML = `<div class="hint">請輸入資料後按「計算」。</div>`;
   });
 </script>
