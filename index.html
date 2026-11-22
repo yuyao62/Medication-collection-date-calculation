@@ -20,6 +20,7 @@
     width:100%; padding:10px 12px; font-size:14px;
     border-radius:12px; border:1px solid #d1d5db; background:#fff;
   }
+  input[readonly]{ background:#f3f6fc; color:#1d4ed8; font-weight:700; cursor:default; }
   input:focus,select:focus{ outline:none; border-color:#60a5fa; box-shadow:0 0 0 3px rgba(96,165,250,.25); }
   .btns{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
   button{ border:0; border-radius:12px; padding:10px 12px; font-size:14px; cursor:pointer; }
@@ -46,7 +47,7 @@
 <div class="app">
   <h1>慢箋第 2、3 次領藥日期計算</h1>
   <div class="sub">
-    預設領 <span class="pill">3 次</span>，每次依實際處方天數計算總給藥日數（最多 90 天）。<br/>
+    預設領 <span class="pill">3 次</span>；總給藥天數依「每次天數 × 次數」自動計算（上限 90 天）。<br/>
     預設以給藥天數減去提前領藥天數（10 天）估算下次可領日期。<br/>
     ※ 第 1 次實領可不填（＝開立日）。<br/>
     ※ 第 2 次提早領取不會讓第 3 次提前；若超過原定用藥接續日才領，第 3 次會順延。<br/>
@@ -86,14 +87,14 @@
       </div>
 
       <div class="row">
-        <label>總有效天數（慢箋）</label>
-        <input id="validDays" type="number" min="1" max="90" value="90" />
+        <label for="validDays">總給藥天數（自動計算）</label>
+        <input id="validDays" type="number" min="1" max="90" value="90" readonly aria-readonly="true" title="依每次處方天數及領藥次數自動計算" />
       </div>
 
       <div class="hint">
         <b>計算方式：</b>最早可再領 = 前次給藥起始日 + 每次給藥天數 − 提前天數。<br/>
         例如 115/12/1 領 28 天、可提前 10 天 → 第 2 次試算為 <b>115/12/19</b>。<br/>
-        有效天數預設為「每次給藥日數 × 次數」（至多 90 天）；如處方箋另有記載，請依實際處方調整。
+        總給藥天數將隨每次天數與領藥次數自動更新，最多顯示 90 天；若處方註明不同的效期或給藥期間，請以處方箋為準。
       </div>
 
       <div class="btns">
@@ -122,7 +123,7 @@
     sel.value = "30";
   })();
 
-  // 調整每次天數或次數時，自動重算總給藥日數；仍允許依處方手動更改。
+  // 調整每次天數或次數時，立即自動重算總給藥天數；欄位唯讀避免手動輸入造成矛盾。
   function autoValidDays(){
     const d = Number(document.getElementById("daysPerFill").value);
     const n = Number(document.getElementById("fills").value);
@@ -235,6 +236,7 @@
     const days = Number(document.getElementById("daysPerFill").value);
     const threshold = Number(document.getElementById("threshold").value);
     const fills = Number(document.getElementById("fills").value);
+    autoValidDays();
     const validDays = Number(document.getElementById("validDays").value);
 
     if(!Number.isInteger(threshold) || threshold < 1 || threshold > days ||
@@ -266,8 +268,8 @@
       if(fill2 > expiry) inputWarn.push("第 2 次實領日超過填寫的效期。");
       if(fill2 < fill1) inputWarn.push("第 2 次實領日不可早於第 1 次實領日。");
     }
-    if(validDays !== days * fills){
-      inputWarn.push("總有效天數與每次天數 × 次數不同，請確認處方箋實際總給藥日數。");
+    if(days * fills > 90){
+      inputWarn.push("每次天數 × 次數超過 90 天，目前以 90 天試算，請依實際處方箋核對給藥日數。");
     }
     const impossible = secondEarliest > expiry ||
       (fills === 3 && thirdEarliest > expiry);
@@ -300,7 +302,7 @@
     out.innerHTML = `
       <div class="${headerClass}">
         <b>開立日：</b>${fmtYMD(issue)}（民國 ${fmtROC(issue)}）　
-        <b>到期最後可領日：</b>${fmtYMD(expiry)}（民國 ${fmtROC(expiry)}）<br/>
+        <b>試算效期末日：</b>${fmtYMD(expiry)}（民國 ${fmtROC(expiry)}）<br/>
         <span class="hint">每次 ${days} 天、提前 ${threshold} 天 ⇒ 首次間隔 ${gap} 天；總給藥日數 ${days * fills} 天</span>
         ${impossible ? `<div class="hint" style="margin-top:6px;">注意：依目前填入的日期及效期，部分領藥日已超過效期，請向藥師確認。</div>` : ``}
         ${inputWarn.length ? `<div class="hint" style="margin-top:6px;">${inputWarn.map(s=>`• ${s}`).join("<br/>")}</div>` : ``}
