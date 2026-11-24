@@ -90,12 +90,12 @@
 
 </details>
       <details><summary>計算說明</summary>      <div class="hint">
-        <b>計算方式：</b>最早可再領 = 前次給藥起始日 + 每次給藥天數 − 提前天數。<br/>
-        例如 115/12/1 領 28 天、可提前 10 天 → 第 2 次試算為 <b>115/12/19</b>。<br/>
+        <b>計算方式：</b>最早可再領 = 前次用藥末日 − 提前天數（起始日算第 1 天）。<br/>
+        例如 115/12/1 領 28 天、可提前 10 天 → 第 2 次試算為 <b>115/12/18</b>。<br/>
         總給藥天數將隨每次天數與領藥次數自動更新，最多顯示 90 天；若處方註明不同的效期或給藥期間，請以處方箋為準。
       </div>
 
-<p class="hint">第 1 次未填，假設開立日領取；第 2 次提早領取不會使第 3 次提前，若晚於原定用藥接續日才領，第 3 次試算順延。</p></details>
+<p class="hint">第 1 次未填，假設開立日領取；第 2 次提早領取不會使第 3 次提前，若晚於原定用藥接續日才領，第 3 次試算順延。<br>參考：<a href="https://www.nhi.gov.tw/ch/dl-86846-62e3ad899cfb4bf8a4187af356a765c6-1.pdf" target="_blank" rel="noopener noreferrer">健保署提前10日領藥檢核邏輯</a>。</p></details>
       <div class="btns">
         <button class="primary" id="calcBtn">計算</button>
         <button class="ghost" id="exampleBtn">帶入範例</button>
@@ -113,7 +113,7 @@
   // 初始化 21~31
   (function initDays(){
     const sel = document.getElementById("daysPerFill");
-    for(let d=21; d<=31; d++){
+    for(let d=21; d<=30; d++){
       const opt = document.createElement("option");
       opt.value = String(d);
       opt.textContent = `${d} 天`;
@@ -218,15 +218,15 @@
     autoValidDays();
     const validDays = Number(document.getElementById("validDays").value);
 
-    if(!Number.isInteger(threshold) || threshold < 1 || threshold > days ||
+    if(!Number.isInteger(threshold) || threshold < 1 || threshold >= days ||
        !Number.isInteger(validDays) || validDays < 1 || validDays > 90){
-      out.innerHTML = `<div class="warn">提前天數須介於 1～${days}；總有效天數須介於 1～90。</div>`;
+      out.innerHTML = `<div class="warn">提前天數須介於 1～${days-1}；總有效天數須介於 1～90。</div>`;
       return;
     }
 
-    // 以「用藥起算日 + 給藥天數 - 提前天數」估算最早調劑日。
+    // 以「用藥起算日 + 給藥天數 - 1 - 提前天數」估算最早調劑日。
     // 提前領取仍接續前一段用藥，不會因此將下一次可領日提前。
-    const gap = days - threshold;
+    const gap = days - 1 - threshold;
     const expiry = addDays(issue, validDays - 1);
     const today = todayUTC();
     const secondEarliest = addDays(fill1, gap);
