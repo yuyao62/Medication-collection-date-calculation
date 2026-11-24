@@ -41,26 +41,38 @@
   .green{ background:#ecfdf5; color:#065f46; border-color:#a7f3d0; }
   .red{ background:#fef2f2; color:#b91c1c; border-color:#fecaca; }
   .gray{ background:#f3f4f6; color:#374151; border-color:#e5e7eb; }
+ 
+.app{max-width:1050px;padding:clamp(12px,3vw,24px)} h1{font-size:clamp(22px,3vw,28px);color:#174f40}.grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}.card{min-width:0;padding:16px}.row{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin:12px 0}label{font-size:16px}input,select,button{font-size:16px;min-height:46px}.primary{background:#216b55}.sub,.hint{font-size:14px;line-height:1.6}details{margin:12px 0}summary{cursor:pointer;color:#24583d;font-weight:650;padding:8px 0}.result-item{border:1px solid #d9e7df;border-radius:14px;padding:14px;margin:10px 0;background:#f7fbf8}.result-item h2{font-size:17px;margin:0 0 6px;color:#24583d}.result-date{font-size:clamp(26px,4vw,34px);font-weight:800;color:#174f40;white-space:nowrap;font-variant-numeric:tabular-nums}.result-item .hint{margin:6px 0 0}.result-item .status{margin:4px 0}.expiry-date{font-weight:750;white-space:nowrap}.result-item.invalid .result-date{color:#b91c1c}.result-item.invalid{background:#fff5f5;border-color:#fecaca}@media(max-width:760px){.grid{grid-template-columns:1fr}}@media(max-width:520px){.row{grid-template-columns:1fr}body{padding:8px}} 
 </style>
 </head>
 <body>
 <div class="app">
   <h1>慢箋第 2、3 次領藥日期計算</h1>
-  <div class="sub">
-    預設領 <span class="pill">3 次</span>；總給藥天數依「每次天數 × 次數」自動計算（上限 90 天）。<br/>
-    預設以給藥天數減去提前領藥天數（10 天）估算下次可領日期。<br/>
-    ※ 第 1 次實領可不填（＝開立日）。<br/>
-    ※ 第 2 次提早領取不會讓第 3 次提前；若超過原定用藥接續日才領，第 3 次會順延。<br/>
-    ※ 日期僅供試算；實際給藥期間、例假日特殊提前措施及是否可調劑，以處方箋、健保紀錄與藥師確認為準。
-  </div>
+  <div class="sub">輸入慢性病連續處方箋資料，即可試算下次最早領藥日期。<br>日期僅供參考，實際領藥依處方箋、健保規定及藥師確認為準。</div>
 
   <div class="grid">
     <div class="card">
       <div class="row">
-        <label>處方開立日（民國/西元）</label>
-        <input id="issueDate" placeholder="114/11/1 或 2025-11-01" />
+        <label for="issueDate">處方開立日（民國／西元）</label>
+        <input id="issueDate" placeholder="例如 115/12/01" />
       </div>
 
+      <div class="row">
+        <label for="daysPerFill">每次給藥天數</label>
+        <select id="daysPerFill"></select>
+      </div>
+
+      <div class="row">
+        <label for="fills">領藥次數</label>
+        <select id="fills"><option value="2">2 次</option><option value="3" selected>3 次</option></select>
+      </div>
+
+      <div class="row">
+        <label for="validDays">總給藥天數（自動計算）</label>
+        <input id="validDays" type="number" min="1" max="90" value="90" readonly aria-readonly="true" title="依每次處方天數及領藥次數自動計算" />
+      </div>
+
+      <details id="advanced"><summary>實際領藥日期／其他設定（選填）</summary>
       <div class="row">
         <label>第 1 次實領藥日（未填＝開立日）</label>
         <input id="fill1Date" placeholder="通常不必填" />
@@ -72,40 +84,27 @@
       </div>
 
       <div class="row">
-        <label>每次處方天數（開立時選）</label>
-        <select id="daysPerFill"></select>
-      </div>
-
-      <div class="row">
         <label>可提前領藥天數（預設 10 天）</label>
         <input id="threshold" type="number" min="1" value="10" />
       </div>
 
-      <div class="row">
-        <label>領藥次數</label>
-        <select id="fills"><option value="2">2 次</option><option value="3" selected>3 次</option></select>
-      </div>
-
-      <div class="row">
-        <label for="validDays">總給藥天數（自動計算）</label>
-        <input id="validDays" type="number" min="1" max="90" value="90" readonly aria-readonly="true" title="依每次處方天數及領藥次數自動計算" />
-      </div>
-
-      <div class="hint">
+</details>
+      <details><summary>計算說明</summary>      <div class="hint">
         <b>計算方式：</b>最早可再領 = 前次給藥起始日 + 每次給藥天數 − 提前天數。<br/>
         例如 115/12/1 領 28 天、可提前 10 天 → 第 2 次試算為 <b>115/12/19</b>。<br/>
         總給藥天數將隨每次天數與領藥次數自動更新，最多顯示 90 天；若處方註明不同的效期或給藥期間，請以處方箋為準。
       </div>
 
+<p class="hint">第 1 次未填，假設開立日領取；第 2 次提早領取不會使第 3 次提前，若晚於原定用藥接續日才領，第 3 次試算順延。</p></details>
       <div class="btns">
         <button class="primary" id="calcBtn">計算</button>
-        <button class="ghost" id="exampleBtn">帶入範例（含晚領）</button>
+        <button class="ghost" id="exampleBtn">帶入範例</button>
         <button class="ghost" id="clearBtn">清除</button>
       </div>
     </div>
 
     <div class="card">
-      <div id="output" class="hint">請輸入資料後按「計算」。</div>
+      <div id="output" aria-live="polite">請輸入資料後按「計算」。</div>
     </div>
   </div>
 </div>
@@ -143,7 +142,7 @@
     return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth()+1)}-${pad2(d.getUTCDate())}`;
   }
   function fmtROC(d){
-    return `${d.getUTCFullYear()-1911}/${d.getUTCMonth()+1}/${d.getUTCDate()}`;
+    return `${d.getUTCFullYear()-1911}/${pad2(d.getUTCMonth()+1)}/${pad2(d.getUTCDate())}`;
   }
   function parseDate(s){
     if(!s) return null;
@@ -179,30 +178,10 @@
   }
 
   function renderTable(rows){
-    return `
-      <table class="table">
-        <thead>
-          <tr>
-            <th style="width:110px;">次數</th>
-            <th>可領日期（最早 ~ 最晚）</th>
-            <th style="width:320px;">判斷/說明</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows.map(r=>`
-            <tr>
-              <td><b>${r.k}</b></td>
-              <td>
-                <div class="mono">${r.earliest} ~ ${r.latest}</div>
-                <div class="hint">民國：${r.earliestROC} ~ ${r.latestROC}</div>
-                ${r.extra ? `<div class="hint">${r.extra}</div>` : ``}
-              </td>
-              <td class="hint">${r.note}</td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-    `;
+    return rows.map((r,i)=>{
+      const invalid=r.earliest>r.latest;
+      return `<section class="result-item ${invalid?'invalid':''}"><h2>${r.k}領藥${i===0?'（起算日）':'｜預估最早日期'}</h2><div class="result-date">${invalid?'超過試算效期':r.earliestROC}</div>${invalid?`<div class="hint">預估日期：${r.earliestROC}，請向藥師確認。</div>`:''}${r.extra?`<div class="hint">${r.extra}</div>`:''}<div class="hint">${r.note}</div></section>`;
+    }).join("");
   }
 
   function calc(){
@@ -286,12 +265,12 @@
     rows.push(row("第 1 次", fill1, fill1, "",
       fill1Raw ? "已填第 1 次實領日" : "假設於開立日領取（若不同請填實領日）"));
     rows.push(row("第 2 次", secondEarliest, secondLatest,
-      fill2 ? `已實領：${fmtYMD(fill2)}` :
-        `今天（${fmtYMD(today)}）${statusChip(canSecondToday, canSecondToday ? "在試算區間內" : "不在試算區間")}`,
-      "最早日為預估值；最晚顯示處方效期，不代表可無條件領取"));
+      fill2 ? `已實領：${fmtROC(fill2)}` :
+        `今天（${fmtROC(today)}）${statusChip(canSecondToday, canSecondToday ? "在試算區間內" : "不在試算區間")}`,
+      "最早日期為試算值，實際領取請向藥師確認。"));
     if(fills === 3){
       rows.push(row("第 3 次", thirdEarliest, thirdLatest,
-        `今天（${fmtYMD(today)}）${statusChip(fill2 ? canThirdToday : null, !fill2 ? "尚未填第 2 次實領日" : (canThirdToday ? "在試算區間內" : "不在試算區間"))}`,
+        `今天（${fmtROC(today)}）${statusChip(fill2 ? canThirdToday : null, !fill2 ? "尚未填第 2 次實領日" : (canThirdToday ? "在試算區間內" : "不在試算區間"))}`,
         fill2 && fill2 > secondScheduledStart
           ? "第 2 次晚於原定用藥接續日，第 3 次試算順延"
           : "依原定給藥期間推算；第 2 次提前領藥不使第 3 次提前"));
@@ -301,9 +280,7 @@
 
     out.innerHTML = `
       <div class="${headerClass}">
-        <b>開立日：</b>${fmtYMD(issue)}（民國 ${fmtROC(issue)}）　
-        <b>試算效期末日：</b>${fmtYMD(expiry)}（民國 ${fmtROC(expiry)}）<br/>
-        <span class="hint">每次 ${days} 天、提前 ${threshold} 天 ⇒ 首次間隔 ${gap} 天；總給藥日數 ${days * fills} 天</span>
+        <div>開立日：<span class="expiry-date">${fmtROC(issue)}</span></div><div>試算效期末日：<span class="expiry-date">${fmtROC(expiry)}</span></div><div class="hint">以上均為民國日期。處方效期不代表可無條件領藥。</div>
         ${impossible ? `<div class="hint" style="margin-top:6px;">注意：依目前填入的日期及效期，部分領藥日已超過效期，請向藥師確認。</div>` : ``}
         ${inputWarn.length ? `<div class="hint" style="margin-top:6px;">${inputWarn.map(s=>`• ${s}`).join("<br/>")}</div>` : ``}
       </div>
@@ -322,6 +299,7 @@
     document.getElementById("threshold").value = "10";
     document.getElementById("fills").value = "3";
     autoValidDays();
+    document.getElementById("advanced").open=true;
     calc();
   });
 
